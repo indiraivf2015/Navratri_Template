@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Navratri Studio</title>
+<link rel="icon" type="image/png" href="templates/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  /* Colours lifted from the Navratri artwork: warm cream paper, marigold
+     garland, Indira red headline, deep navy type. --accent is the Indira red,
+     which keeps white button text above contrast. */
+  :root{
+    --bg:#FFF8F1; --surface:#FFFFFF; --cream:#FDF0E1; --cream-2:#FBE3C8;
+    --border:#F0E0CC; --border-strong:#E3C9A6;
+    --text:#14213A; --text-2:#5A6070; --text-3:#8C8F99;
+    --marigold:#F2A11F; --accent:#D9073F; --accent-hover:#B0062F; --accent-soft:#FDECEF;
+    --ok:#15803D; --ok-soft:#F0FDF4; --warn:#B45309; --warn-bg:#FFFBEB; --warn-br:#FDE68A;
+    --r-card:14px; --r-input:10px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:'Figtree',system-ui,Arial,sans-serif;
+    background:
+      radial-gradient(900px 420px at 100% 0%, rgba(248,196,120,.32), transparent 70%),
+      radial-gradient(700px 380px at 0% 100%, rgba(242,170,170,.22), transparent 70%),
+      var(--bg);
+    background-attachment:fixed;
+    color:var(--text); font-size:14px; line-height:1.5; min-height:100vh;
+  }
+  button,select,input{font-family:inherit; font-size:inherit;}
+  :focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+
+  header{
+    background:linear-gradient(120deg,#FFFFFF 0%,#FFF6EA 55%,#FDE6CC 100%);
+    border-bottom:1px solid var(--border);
+  }
+  .hd-inner{max-width:1280px; margin:0 auto; padding:16px 24px; display:flex; align-items:center; gap:14px;}
+  .hd-mark{
+    width:48px; height:48px; flex:none; border-radius:50%;
+    background:#fff; border:2px solid var(--marigold);
+    box-shadow:0 0 0 5px rgba(242,161,31,.16);
+    display:flex; align-items:center; justify-content:center; overflow:hidden;
+  }
+  .hd-mark img{width:34px; height:auto; display:block;}
+  .hd-title{min-width:0;}
+  .hd-title strong{display:block; font-size:21px; font-weight:800; letter-spacing:-.01em; line-height:1.15;}
+  .hd-title strong em{font-style:normal; color:var(--accent);}
+  .hd-title span{display:block; font-size:13px; color:var(--text-2); margin-top:2px;}
+  .hd-date{
+    margin-left:auto; flex:none;
+    font-size:11px; font-weight:600; letter-spacing:.22em; text-transform:uppercase;
+    color:var(--accent); background:#fff; border:1px solid var(--border-strong);
+    border-radius:999px; padding:6px 14px;
+  }
+  .hd-bar{height:4px; background:linear-gradient(90deg,#F8C35C 0%,#F2A11F 30%,#D9073F 60%,#F2A11F 85%,#F8C35C 100%);}
+
+  .wrap{max-width:1280px; margin:0 auto; padding:0 24px;}
+  .banner{margin-top:16px;}
+  .banner-in{background:var(--warn-bg); border:1px solid var(--warn-br); color:#78350F; border-radius:var(--r-card); padding:10px 14px; font-size:13px; display:flex; gap:10px;}
+  .banner.hide,.hide{display:none !important;}
+  .must{
+    margin-top:18px;
+    background:linear-gradient(120deg,#FFFFFF 0%,var(--cream) 100%);
+    border:1px solid var(--border-strong);
+    border-left:4px solid var(--marigold);
+    border-radius:var(--r-card);
+    padding:14px 18px;
+  }
+  .must-title{font-weight:700; font-size:15px; line-height:1.4; margin-bottom:8px; color:var(--text);}
+  .must-title em{font-style:normal; color:var(--accent);}
+  .must-list{
+    list-style:none;
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    font-size:14px;
+    line-height:1.55;
+    color:var(--text-2);
+  }
+  .must-list strong{font-weight:700; color:var(--text);}
+  @media (min-width:641px){
+    .must{padding:16px 22px;}
+    .must-title{font-size:16px;}
+    .must-list{font-size:15px; gap:6px;}
+  }
+
+  .steps{margin-top:20px; display:flex; gap:12px; flex-wrap:wrap; align-items:stretch;}
+  .card{background:var(--surface); border:1px solid var(--border); border-radius:var(--r-card); padding:12px 14px; display:flex; gap:12px; align-items:center; min-height:64px; box-shadow:0 6px 18px rgba(160,90,20,.06);}
+  .card.drop{flex:1 1 240px; cursor:pointer; transition:border-color 150ms ease, background 150ms ease;}
+  .card.drop:hover{border-color:var(--border-strong);}
+  .card.drop.over{border-color:var(--accent); background:var(--accent-soft);}
+  .card.drop:focus-within{border-color:var(--accent);}
+  #photoCard{flex:1 1 420px; border-color:var(--marigold); position:relative;}
+  .card-split{width:1px; align-self:stretch; background:var(--border); flex:none; margin:0 4px;}
+  .layout-fld{min-width:220px; flex:0 0 260px;}
+  .layout-fld select{width:100%;}
+  .card.done .num{background:var(--ok-soft); border-color:var(--ok); color:var(--ok);}
+  .num{font-size:12px; font-weight:700; color:var(--accent); background:var(--accent-soft); border:1px solid var(--border-strong); border-radius:999px; width:24px; height:24px; display:flex; align-items:center; justify-content:center; flex:none;}
+  .c-name{font-weight:600; font-size:13px;}
+  .c-meta{font-size:12px; color:var(--text-2);}
+  /* Visually hidden but still focusable, so the photo picker works from the keyboard. */
+  .card input[type=file]{position:absolute; width:1px; height:1px; opacity:0; overflow:hidden; pointer-events:none;}
+  #photoCard{flex-wrap:wrap;}
+  .photo-pick{cursor:pointer; min-width:0; flex:1 1 160px;}
+  .photo-pick .c-name{font-weight:700;}
+  .card.actions{flex:0 0 auto; gap:8px; flex-wrap:wrap; margin-left:auto;}
+  .card.actions .btn{white-space:nowrap;}
+  .card.fields{
+    flex:1 1 100%;
+    align-items:flex-end;
+    gap:12px;
+    min-height:72px;
+    width:100%;
+  }
+  .fields-stack{
+    display:flex;
+    flex:1 1 auto;
+    gap:12px 16px;
+    min-width:0;
+  }
+  .fields-stack .fld{flex:1 1 0; min-width:0;}
+  .fields-stack .fld input{width:100%; min-width:0;}
+  .mobile-dl{margin-top:12px;}
+  .mobile-dl:empty{display:none;}
+  .mobile-dl .card.actions{margin-left:0; width:100%; justify-content:stretch;}
+  .mobile-dl .card.actions .btn{flex:1;}
+
+  .seg{display:flex; border:1px solid var(--border); border-radius:var(--r-input); overflow:hidden;}
+  .seg button{border:none; background:transparent; padding:5px 12px; font-size:12px; color:var(--text-2); cursor:pointer; white-space:nowrap;}
+  .seg button.on{background:var(--accent-soft); color:var(--accent); font-weight:600;}
+
+  main{margin:16px auto 12px; display:grid; grid-template-columns:340px 1fr; gap:16px; align-items:start;}
+  main.solo{grid-template-columns:1fr;}
+  @media (max-width:900px){ main{grid-template-columns:1fr;} }
+  .panel{background:var(--surface); border:1px solid var(--border); border-radius:var(--r-card); box-shadow:0 10px 30px rgba(160,90,20,.07);}
+
+  .list-head{padding:12px 14px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .list-head h2{font-size:13px; font-weight:600;}
+  .count{font-size:12px; color:var(--text-2);}
+  .list-search{padding:0 14px 12px; border-bottom:1px solid var(--border);}
+  .list-search input{
+    width:100%; border:1px solid var(--border); border-radius:var(--r-input);
+    padding:7px 10px; font-size:13px; background:var(--surface); color:var(--text);
+  }
+  .list-search input:focus{outline:2px solid var(--accent); outline-offset:-1px; border-color:transparent;}
+  .rows{max-height:540px; overflow:auto;}
+  .row{padding:10px 14px; border-bottom:1px solid var(--border); cursor:pointer; display:flex; gap:10px; align-items:center;}
+  .row:last-child{border-bottom:none;}
+  .row:hover{background:#FFF7EC;}
+  .row.sel{background:var(--accent-soft); box-shadow:inset 2px 0 0 var(--accent);}
+  .badge{
+    flex:none; font-size:10px; font-weight:600; line-height:1.2;
+    padding:4px 6px; border-radius:4px; white-space:nowrap; min-width:64px; text-align:center;
+  }
+  .badge.miss{background:var(--warn-bg); color:var(--warn); border:1px solid var(--warn-br);}
+  .badge.ok{background:var(--ok-soft); color:var(--ok); border:1px solid #BBF7D0;}
+  .badge.dl{background:#EFF6FF; color:#1D4ED8; border:1px solid #BFDBFE;}
+  .row-main{min-width:0; flex:1;}
+  .row-name{font-weight:500; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .row-sub{font-size:12px; color:var(--text-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .list-foot{padding:10px 14px; border-top:1px solid var(--border); display:flex; gap:8px;}
+  .empty{padding:32px 20px; text-align:center; color:var(--text-2); font-size:13px;}
+
+  .fld{display:flex; flex-direction:column; gap:2px;}
+  .fld label{font-size:11px; color:var(--text-2);}
+  .fld label[for="nameInput"],
+  .fld label[for="desgInput"],
+  .fld label[for="locInput"],
+  .fld label[for="layoutSelect"]{font-weight:700; color:var(--text); font-size:12px;}
+  .fld input,.fld select{
+    border:1px solid var(--border-strong); border-radius:var(--r-input);
+    padding:8px 10px; min-width:170px; background:#fff; color:var(--text);
+  }
+  .fld select{cursor:pointer;}
+  .fld input:focus,.fld select:focus{outline:2px solid var(--accent); outline-offset:-1px; border-color:transparent;}
+  #layoutSelect:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 1px var(--accent);}
+  .ed-body{padding:16px; display:flex; gap:20px; flex-wrap:wrap; justify-content:center;}
+  #stage{border:1px solid var(--border); border-radius:var(--r-card); width:100%; max-width:420px; height:auto; touch-action:none; cursor:grab; background:#fff; box-shadow:0 12px 32px rgba(160,90,20,.12);}
+  #stage.dragging{cursor:grabbing;}
+  .side{width:240px; display:flex; flex-direction:column; gap:14px;}
+  .ctl label{font-size:12px; color:var(--text-2); display:flex; justify-content:space-between;}
+  .ctl input[type=range]{width:100%; accent-color:var(--accent);}
+  .hint{font-size:12px; color:var(--text-3); line-height:1.55;}
+
+  .btn{border:1px solid var(--border-strong); background:var(--surface); color:var(--text); border-radius:var(--r-input); padding:7px 14px; font-size:13px; font-weight:600; cursor:pointer; transition:background 150ms ease,border-color 150ms ease;}
+  .btn:hover{border-color:var(--marigold); background:#FFF7EC;}
+  .btn.primary{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .btn.primary:hover{background:var(--accent-hover); border-color:var(--accent-hover);}
+  .btn:disabled{opacity:.45; cursor:not-allowed;}
+  .btn.small{padding:5px 10px; font-size:12px;}
+  /* With Excel off, Download PNG is the only action, so it carries the weight. */
+  #dlBtn:not(:disabled){background:var(--accent); border-color:var(--accent); color:#fff;}
+  #dlBtn:not(:disabled):hover{background:var(--accent-hover); border-color:var(--accent-hover);}
+
+  footer{padding:0 0 28px; color:var(--text-3); font-size:12px; display:flex; gap:12px; flex-wrap:wrap;}
+
+  .ovl{position:fixed; inset:0; background:rgba(20,33,58,.72); display:none; align-items:center; justify-content:center; padding:24px; z-index:50;}
+  .ovl.show{display:flex;}
+  .ovl-card{background:var(--surface); border-radius:var(--r-card); max-width:640px; width:100%; max-height:90vh; overflow:auto; padding:18px;}
+  .ovl-card h3{font-size:14px; font-weight:600; margin-bottom:4px;}
+  .ovl-card p{font-size:13px; color:var(--text-2); margin-bottom:12px;}
+  .ovl-card img{width:100%; border:1px solid var(--border); border-radius:var(--r-input); display:block;}
+  .ovl-foot{display:flex; gap:8px; justify-content:flex-end; margin-top:12px;}
+
+  .toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--text); color:#fff; padding:8px 16px; border-radius:var(--r-input); font-size:13px; opacity:0; pointer-events:none; transition:opacity 150ms ease; max-width:92vw; text-align:center; z-index:60;}
+  .toast.show{opacity:1;}
+  @media (max-width:640px){
+    .wrap{padding:0 16px;}
+    .hd-inner{padding:12px 16px; gap:10px;}
+    .hd-mark{width:40px; height:40px; box-shadow:0 0 0 4px rgba(242,161,31,.16);}
+    .hd-mark img{width:28px;}
+    .hd-title strong{font-size:17px;}
+    .hd-title span{font-size:12px;}
+    .hd-date{display:none;}
+    .steps{flex-direction:column;}
+    #photoCard,.card.actions,.card.fields{width:100%; margin-left:0;}
+    #photoCard{
+      display:grid;
+      grid-template-columns:24px 1fr;
+      align-items:start;
+      gap:10px 12px;
+      padding:16px;
+      flex:none;
+      height:auto;
+      min-height:0;
+      flex-wrap:nowrap;
+    }
+    #photoCard .num{grid-column:1; grid-row:1; margin-top:2px;}
+    #photoCard .photo-pick{grid-column:2; grid-row:1; flex:none; width:auto;}
+    #photoCard .card-split{display:none;}
+    #photoCard .layout-fld{
+      grid-column:2;
+      grid-row:2;
+      flex:none;
+      width:100%;
+      min-width:0;
+      margin-top:4px;
+    }
+    #photoCard .layout-fld select{width:100%; min-width:0;}
+    .card.fields{align-items:flex-start;}
+    .card.fields .num{margin-top:22px;}
+    .fields-stack{
+      flex-direction:column;
+      width:100%;
+      gap:12px;
+    }
+    .fields-stack .fld{flex:none; width:100%;}
+    .fields-stack .fld input{width:100%; min-width:0;}
+  }
+  @media (prefers-reduced-motion:reduce){ *{transition:none !important;} }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hd-inner">
+    <div class="hd-mark" aria-hidden="true">
+      <img src="templates/header-durga.png" alt="">
+    </div>
+    <div class="hd-title">
+      <strong>Happy <em>Navratri</em></strong>
+      <span>Creative Studio · Indira IVF</span>
+    </div>
+    <div class="hd-date">9 Nights · 9 Colours</div>
+  </div>
+  <div class="hd-bar"></div>
+</header>
+
+<div class="wrap">
+  <div class="banner hide" id="banner"><div class="banner-in"><span>i</span>
+    <span><strong>Preview mode.</strong> This page is inside a preview frame, which blocks file saving. Download this HTML file and open it in Chrome for one-click PNG and ZIP downloads.</span>
+  </div></div>
+
+  <aside class="must" aria-label="Mandatory steps">
+    <p class="must-title">Create your <em>Navratri</em> creative in three steps</p>
+    <ol class="must-list">
+      <li><strong>Step 1:</strong> Upload your photo and pick Diya &amp; Dandiya or Maa Durga.</li>
+      <li id="mustStep2"><strong>Step 2:</strong> Write your <strong>Name</strong>, <strong>Designation</strong> and <strong>Location</strong>.</li>
+      <li><strong>Step 3:</strong> Download the image.</li>
+    </ol>
+  </aside>
+
+  <div class="steps">
+    <div class="card" id="modeCard">
+      <span class="num">1</span>
+      <span>
+        <span class="c-name">What are you making?</span>
+        <div class="seg" id="modeSeg" style="margin-top:4px">
+          <button data-m="batch" class="on" type="button">Whole team (Excel)</button>
+          <button data-m="solo" type="button">Just mine</button>
+        </div>
+      </span>
+    </div>
+
+    <label class="card drop" id="sheetCard">
+      <span class="num">2</span>
+      <span><span class="c-name">Upload employee sheet</span><br>
+      <span class="c-meta" id="sheetMeta">Employee Name + Employee ID / Document Name · Department, Location optional</span></span>
+      <input type="file" id="sheetInput" accept=".xlsx,.xls,.csv">
+    </label>
+
+    <div class="card drop" id="photoCard">
+      <span class="num" id="photoStepNum">1</span>
+      <label class="photo-pick" for="photoInput">
+        <span class="c-name" id="photoTitle">Upload your photo</span><br>
+        <span class="c-meta" id="photoMeta">JPG · PNG · WEBP · PDF</span>
+      </label>
+      <input type="file" id="photoInput" accept=".jpg,.jpeg,.png,.webp,.pdf,image/*,application/pdf" multiple>
+      <div class="card-split" aria-hidden="true"></div>
+      <div class="fld layout-fld">
+        <label for="layoutSelect">Design</label>
+        <select id="layoutSelect"></select>
+      </div>
+    </div>
+
+    <div class="card actions" id="dlCard">
+      <span class="num">3</span>
+      <button class="btn" id="dlBtn" type="button" disabled>Download PNG</button>
+      <button class="btn primary" id="zipBtn" type="button" disabled>Download all (ZIP)</button>
+    </div>
+
+    <div class="card fields" id="fieldsCard">
+      <span class="num">2</span>
+      <div class="fields-stack">
+        <div class="fld"><label for="nameInput">Name</label><input id="nameInput" placeholder="e.g. Dr. Priya Sharma" autocomplete="off" maxlength="60"></div>
+        <div class="fld"><label for="desgInput">Designation</label><input id="desgInput" placeholder="e.g. Fertility Specialist" autocomplete="off" maxlength="60"></div>
+        <div class="fld" id="locFld"><label for="locInput">Location</label><input id="locInput" placeholder="e.g. Udaipur" autocomplete="off" maxlength="40"></div>
+      </div>
+    </div>
+  </div>
+
+  <main id="main">
+    <section class="panel" id="listPanel">
+      <div class="list-head">
+        <h2>Employees</h2><span class="count" id="countLabel"></span>
+        <div class="seg" id="filterSeg" style="margin-left:auto">
+          <button data-f="all" class="on" type="button">All</button>
+          <button data-f="ready" type="button">Pending</button>
+          <button data-f="miss" type="button">Missing</button>
+          <button data-f="done" type="button">Downloaded</button>
+        </div>
+      </div>
+      <div class="list-search">
+        <input type="search" id="empSearch" placeholder="Search name, Employee ID, location…" autocomplete="off" aria-label="Search employees">
+      </div>
+      <div class="rows" id="rows"></div>
+      <div class="list-foot">
+        <button class="btn small" id="addRowBtn" type="button">Add person</button>
+        <button class="btn small" id="clearBtn" type="button">Clear list</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="ed-body">
+        <canvas id="stage" width="420" height="525" aria-label="Creative preview"></canvas>
+        <div class="side">
+          <div class="ctl">
+            <label for="zoomCtl">Photo zoom <span id="zoomVal">100%</span></label>
+            <input type="range" id="zoomCtl" min="100" max="300" value="100" disabled>
+          </div>
+          <button class="btn small" id="resetBtn" type="button" disabled>Reset position</button>
+          <p class="hint">Drag the photo inside the frame to reposition it. Scroll over the preview to zoom.</p>
+          <p class="hint" id="statusHint" role="status"></p>
+          <div class="mobile-dl" id="dlMobileSlot"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span id="verLabel"></span>
+    <span>Photos and details stay on this device — nothing is uploaded to any server.</span>
+  </footer>
+</div>
+
+<div class="ovl" id="ovl" role="dialog" aria-modal="true" aria-labelledby="ovlTitle">
+  <div class="ovl-card">
+    <h3 id="ovlTitle">Your creative</h3>
+    <p>Right-click the image (press and hold on touch) and choose <strong>Save image as…</strong></p>
+    <img id="ovlImg" alt="Generated creative, ready to save">
+    <div class="ovl-foot">
+      <button class="btn" id="ovlOpen" type="button">Open in new tab</button>
+      <button class="btn primary" id="ovlClose" type="button">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+const VERSION = 'v6.1 · Navratri 2026';
+
+// Canvas typography. Figtree matches the geometric sans printed on both designs.
+const FIG = 'Figtree, Arial, sans-serif';
+
+// One plate per design. Every coordinate is a native template pixel, measured
+// on the artwork by tools/prepare_navratri.py.
+//   hole   the photo window: the printed grey placeholder plus a hair of
+//          growth, so its antialiased rim is covered while the printed ring /
+//          border (drawn on top) stays whole.
+//   name / line2   where the printed placeholder lines sit; the typed text is
+//          centred on cx at the same baseline, size, weight and colour.
+//   patch  boxes copied from the "clean" artwork (placeholder text painted
+//          out) when that line is filled in. Outside the painted-out pixels
+//          the clean artwork is identical to the original, so the boxes can be
+//          generous.
+const PLATES = [
+  {
+    id: 'diya',
+    label: 'Diya & Dandiya · round photo',
+    src: 'templates/navratri-diya.png',
+    clean: 'templates/navratri-diya-clean.png',
+    hole: { type: 'ellipse', cx: 561, cy: 737.5, rx: 201, ry: 199.5 },
+    cx: 562,
+    name:  { baseline: 1004, size: 46, weight: 800, fill: '#D9073F', upper: true, maxW: 640, font: FIG },
+    line2: { baseline: 1046, size: 33, weight: 500, fill: '#14213A', maxW: 620, font: FIG,
+             loc: { required: true, bar: { fill: '#DC0F45', w: 2, top: -25, h: 30, gap: 16 } } },
+    patch: [ [432, 954, 692, 1012], [380, 1012, 746, 1064] ]
+  },
+  {
+    id: 'durga',
+    label: 'Maa Durga · square photo',
+    src: 'templates/navratri-durga.png',
+    clean: 'templates/navratri-durga-clean.png',
+    hole: { type: 'rrect', x: 408, y: 1036, w: 208, h: 190, r: 13 },
+    cx: 511,
+    name:  { baseline: 1305, size: 38.5, weight: 700, fill: '#F10B3B', maxW: 600, font: FIG },
+    line2: { baseline: 1339, size: 30, weight: 400, fill: '#455166', maxW: 600, font: FIG },
+    patch: [ [396, 1270, 628, 1313], [420, 1313, 608, 1358] ]
+  }
+];
+
+const EXCEL_ENABLE = false;
+
+// Native template pixels the photo is allowed to run past the punched window.
+// The opaque artwork is drawn over it, so the overrun never shows; it only
+// stops the two antialiased edges leaving a pale hairline between them.
+const CLIP_BLEED = 1.5;
+
+let plate = PLATES[0];
+let tpl = null;      // artwork with the photo window punched out
+let tplRaw = null;   // artwork as printed
+let tplClean = null; // artwork with the placeholder text painted out
+const imgCache = new Map();
+let mode = 'batch';
+const blankPerson = () => ({ code:'', name:'', desg:'', loc:'', imageKey:'', assignedKey:'', photo:null, downloaded:false });
+let batchPeople = [], soloPeople = [blankPerson()];
+let people = batchPeople, pool = new Map(), sel = -1, filter = 'all', searchQ = '';
+
+const $ = id => document.getElementById(id);
+const stem = s => String(s).replace(/\.[^.]+$/, '').trim().toLowerCase();
+const normId = s => String(s || '').trim().toLowerCase().replace(/[\s_\-./]+/g, '');
+const escapeRe = s => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function fileHasId(fileKey, fileLabel, id){
+  const raw = String(id || '').trim();
+  if (raw.length < 4) return false;
+  const nid = normId(raw);
+  if (nid.length >= 4 && (normId(fileKey).includes(nid) || normId(fileLabel).includes(nid))) return true;
+  const re = new RegExp('(^|[^a-z0-9])' + escapeRe(raw) + '([^a-z0-9]|$)', 'i');
+  return re.test(fileKey) || re.test(fileLabel);
+}
+const P = () => plate;
+const needsLoc = () => !!(P().line2.loc && P().line2.loc.required);
+const HAS_XLSX = () => typeof XLSX !== 'undefined';
+const HAS_ZIP = () => typeof JSZip !== 'undefined';
+const EMBEDDED = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
+
+// Ask for every Figtree face the plates draw with: a face used only on the
+// canvas is never fetched by the page on its own.
+const CANVAS_FACES = ['800 46px Figtree', '700 40px Figtree', '500 32px Figtree', '400 30px Figtree'];
+const canvasFonts = (document.fonts && document.fonts.load)
+  ? Promise.all(CANVAS_FACES.map(f => document.fonts.load(f))).catch(() => {})
+  : Promise.resolve();
+const fontsReady = () => Promise.all([
+  canvasFonts,
+  (document.fonts && document.fonts.ready) ? document.fonts.ready.catch(() => {}) : null
+]);
+
+function toast(msg){
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 3400);
+}
+const store = {
+  get(k, d){ try { const v = localStorage.getItem('ics.' + k); return v === null ? d : v; } catch (e){ return d; } },
+  set(k, v){ try { localStorage.setItem('ics.' + k, v); } catch (e){} }
+};
+
+let PDF_OK = typeof pdfjsLib !== 'undefined';
+if (PDF_OK){
+  try { pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; }
+  catch (e){ PDF_OK = false; }
+}
+
+function readDataURL(file){
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(fr.result);
+    fr.onerror = () => rej(new Error('read failed'));
+    fr.readAsDataURL(file);
+  });
+}
+function loadImage(src){
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => res(img);
+    img.onerror = () => rej(new Error('decode failed'));
+    img.src = src;
+  });
+}
+function loadCached(src){
+  if (!imgCache.has(src)){
+    const p = loadImage(src);
+    p.catch(() => imgCache.delete(src));
+    imgCache.set(src, p);
+  }
+  return imgCache.get(src);
+}
+async function fileToImage(file){
+  try { return await loadImage(await readDataURL(file)); }
+  catch (e){ return await createImageBitmap(file); }
+}
+function downscale(img, max){
+  const k = Math.min(1, (max || 1600) / Math.max(img.width, img.height));
+  if (k === 1) return img;
+  const c = document.createElement('canvas');
+  c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  return c;
+}
+async function pdfToCanvas(file){
+  if (!PDF_OK) throw new Error('PDF support unavailable');
+  const doc = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+  const page = await doc.getPage(1);
+  let vp = page.getViewport({ scale: 1 });
+  vp = page.getViewport({ scale: Math.min(1600 / Math.max(vp.width, vp.height), 4) });
+  const c = document.createElement('canvas');
+  c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+  await page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+  return c;
+}
+async function decodePhoto(file){
+  const isPdf = /\.pdf$/i.test(file.name) || file.type === 'application/pdf';
+  return isPdf ? await pdfToCanvas(file) : downscale(await fileToImage(file), 1600);
+}
+
+// ---------- Photo window ----------
+function roundRectPath(ctx, x, y, w, h, r){
+  r = Math.max(0, Math.min(r, w / 2, h / 2));
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+function holePath(ctx, h, grow){
+  const g = grow || 0;
+  ctx.beginPath();
+  if (h.type === 'ellipse') ctx.ellipse(h.cx, h.cy, h.rx + g, h.ry + g, 0, 0, Math.PI * 2);
+  else roundRectPath(ctx, h.x - g, h.y - g, h.w + 2 * g, h.h + 2 * g, h.r + g);
+}
+function holeBox(h){
+  return h.type === 'ellipse'
+    ? { x: h.cx - h.rx, y: h.cy - h.ry, w: h.rx * 2, h: h.ry * 2 }
+    : { x: h.x, y: h.y, w: h.w, h: h.h };
+}
+function punchHole(img, hole){
+  const c = document.createElement('canvas');
+  c.width = img.width; c.height = img.height;
+  const ctx = c.getContext('2d');
+  ctx.drawImage(img, 0, 0);
+  ctx.globalCompositeOperation = 'destination-out';
+  holePath(ctx, hole, 0);
+  ctx.fill();
+  return c;
+}
+
+function contentBox(img){
+  const w = img.width, h = img.height;
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(img, 0, 0);
+  const data = ctx.getImageData(0, 0, w, h).data;
+  const cr = data[0], cg = data[1], cb = data[2];
+  let x0 = w, y0 = h, x1 = 0, y1 = 0, n = 0;
+  for (let y = 0; y < h; y += 2){
+    for (let x = 0; x < w; x += 2){
+      const i = (y * w + x) * 4;
+      if (data[i + 3] < 24) continue;
+      if (Math.abs(data[i] - cr) + Math.abs(data[i + 1] - cg) + Math.abs(data[i + 2] - cb) < 30) continue;
+      n++;
+      if (x < x0) x0 = x;
+      if (y < y0) y0 = y;
+      if (x > x1) x1 = x;
+      if (y > y1) y1 = y;
+    }
+  }
+  if (n < 80 || (x1 - x0) < w * 0.28 || (y1 - y0) < h * 0.28) return { x: 0, y: 0, w, h };
+  const padX = Math.round((x1 - x0) * 0.02);
+  const padY = Math.round((y1 - y0) * 0.02);
+  x0 = Math.max(0, x0 - padX);
+  y0 = Math.max(0, y0 - padY);
+  x1 = Math.min(w - 1, x1 + padX);
+  y1 = Math.min(h - 1, y1 + padY);
+  return { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
+}
+
+function makePhoto(src){
+  return { src, zoom: 1, dx: 0, dy: 0, box: contentBox(src) };
+}
+
+// ---------- Design choice ----------
+function buildDesignSelect(){
+  const s = $('layoutSelect');
+  s.textContent = '';
+  PLATES.forEach(pl => s.add(new Option(pl.label, pl.id)));
+}
+function syncDesign(){
+  $('layoutSelect').value = plate.id;
+  $('mustStep2').innerHTML = plate.line2.loc
+    ? '<strong>Step 2:</strong> Write your <strong>Name</strong>, <strong>Designation</strong> and <strong>Location</strong>.'
+    : '<strong>Step 2:</strong> Write your <strong>Name</strong> and <strong>Designation</strong>.';
+}
+
+async function applyLayout(){
+  const p = P();
+  const [raw, clean] = await Promise.all([loadCached(p.src), loadCached(p.clean).catch(() => null)]);
+  if (p !== P()) return;   // the design changed again while this one loaded
+  tplRaw = raw;
+  tplClean = clean;
+  tpl = punchHole(raw, p.hole);
+  // The frames differ in size and position, so a framing tuned for one design
+  // does not carry over to the other.
+  people.forEach(x => { if (x.photo) Object.assign(x.photo, { zoom: 1, dx: 0, dy: 0 }); });
+  syncDesign();
+  refresh();
+}
+
+async function setPlate(id){
+  const next = PLATES.find(p => p.id === id);
+  if (!next) return;
+  if (next === plate && tpl){ syncDesign(); return; }
+  plate = next;
+  store.set('plate', plate.id);
+  syncDesign();
+  try { await applyLayout(); }
+  catch (e){ toast('That design failed to load — refresh the page and try again.'); }
+}
+
+$('layoutSelect').onchange = () => setPlate($('layoutSelect').value);
+
+$('modeSeg').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  setMode(b.dataset.m);
+};
+function setMode(m){
+  mode = m; store.set('mode', m);
+  people = (m === 'solo') ? soloPeople : batchPeople;
+  sel = people.length ? (m === 'solo' ? 0 : Math.min(Math.max(sel, 0), people.length - 1)) : -1;
+  [...$('modeSeg').children].forEach(b => b.classList.toggle('on', b.dataset.m === m));
+  $('sheetCard').classList.toggle('hide', m === 'solo');
+  $('listPanel').classList.toggle('hide', m === 'solo');
+  $('main').classList.toggle('solo', m === 'solo');
+  $('zipBtn').classList.toggle('hide', m === 'solo');
+  $('photoTitle').textContent = m === 'solo' ? 'Upload your photo' : 'Upload photos';
+  $('photoInput').multiple = m !== 'solo';
+  $('photoMeta').textContent = m === 'solo'
+    ? (soloPeople[0].photo ? 'Photo added' : 'JPG · PNG · WEBP · PDF')
+    : (pool.size ? pool.size + ' photo(s) loaded' : 'JPG · PNG · WEBP · PDF · matched on file name');
+  $('photoCard').classList.toggle('done', m === 'solo' ? !!soloPeople[0].photo : pool.size > 0);
+  refresh();
+}
+
+function wireDrop(card, input, handler){
+  card.addEventListener('dragover', e => { e.preventDefault(); card.classList.add('over'); });
+  card.addEventListener('dragleave', () => card.classList.remove('over'));
+  card.addEventListener('drop', e => {
+    e.preventDefault(); card.classList.remove('over');
+    if (e.dataTransfer.files.length) handler([...e.dataTransfer.files]);
+  });
+  input.addEventListener('change', e => {
+    if (e.target.files.length) handler([...e.target.files]);
+    e.target.value = '';   // picking the same file again still fires change
+  });
+}
+
+wireDrop($('sheetCard'), $('sheetInput'), files => readSheet(files[0]));
+wireDrop($('photoCard'), $('photoInput'), files => readPhotos(files));
+
+async function readSheet(file){
+  if (!HAS_XLSX()){ toast('The spreadsheet reader did not load — check your internet connection and refresh.'); return; }
+  try {
+    const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' });
+    let head = -1, cols = null;
+    for (let i = 0; i < Math.min(rows.length, 12); i++){
+      const low = rows[i].map(c => String(c).toLowerCase().trim());
+      const n = low.findIndex(c => /^(dr\.?\s*|doctor\s*|emp(loyee)?\s*)?name$/.test(c));
+      const im = low.findIndex(c =>
+        /image\s*name|photo\s*name|document\s*name|file\s*name/.test(c) ||
+        /^(image|photo|document|file)$/.test(c)
+      );
+      const code = low.findIndex(c =>
+        /employee\s*id|emp(loyee)?\s*id|emp(loyee)?\s*code|emp\s*code/.test(c) ||
+        /^(id|code)$/.test(c)
+      );
+      const desg = low.findIndex(c => /desig|role|title|department|dept/.test(c));
+      const loc  = low.findIndex(c => /location|centre|center|city|branch/.test(c));
+      if (n > -1 && (im > -1 || code > -1)){
+        head = i;
+        cols = { name:n, image:im, desg, loc, code };
+        break;
+      }
+    }
+    if (head < 0){
+      toast('Headers not found — need Employee Name (or Name), plus Employee ID and/or Document Name.');
+      return;
+    }
+    batchPeople = rows.slice(head + 1).filter(r => String(r[cols.name]).trim()).map(r => ({
+      code: cols.code > -1 ? String(r[cols.code]).trim() : '',
+      name: String(r[cols.name]).trim(),
+      desg: cols.desg > -1 ? String(r[cols.desg]).trim() : '',
+      loc:  cols.loc  > -1 ? String(r[cols.loc]).trim()  : '',
+      imageKey: cols.image > -1 ? stem(r[cols.image]) : '',
+      assignedKey: '',
+      photo: null,
+      downloaded: false
+    }));
+    if (!batchPeople.length){ toast('No rows found under the headers.'); return; }
+    people = batchPeople; sel = 0;
+    $('sheetCard').classList.add('done');
+    $('sheetMeta').textContent = file.name + ' · ' + batchPeople.length + ' people';
+    refresh();
+  } catch (e){ toast('That sheet could not be read — save it as .xlsx or .csv and try again.'); }
+}
+
+function fileMatchesPerson(file, person){
+  const key = stem(file.name);
+  const label = file.name;
+  if (person.imageKey){
+    if (key === person.imageKey || normId(key) === normId(person.imageKey)) return true;
+  }
+  if (person.code && fileHasId(key, label, person.code)) return true;
+  if (person.imageKey){
+    const tokens = String(person.imageKey).match(/[a-z]{2,}\d{4,}|\d{6,}/gi) || [];
+    if (tokens.some(t => fileHasId(key, label, t))) return true;
+  }
+  return false;
+}
+
+async function readPhotos(files){
+  $('photoMeta').textContent = 'Reading ' + files.length + ' file(s)…';
+  let bad = 0, ignored = 0, newlyMatched = 0;
+  const ignoredIds = [];
+  if (mode === 'solo'){
+    try {
+      const src = await decodePhoto(files[0]);
+      soloPeople[0].photo = makePhoto(src);
+      people = soloPeople; sel = 0;
+      $('photoCard').classList.add('done');
+      $('photoMeta').textContent = files[0].name;
+    } catch (e){ toast('That photo could not be read. Try a JPG or PNG.'); $('photoMeta').textContent = 'JPG · PNG · WEBP · PDF'; }
+    refresh(); return;
+  }
+  const beforePending = people.filter(p => p.photo && !p.downloaded).length;
+  for (const f of files){
+    const matches = people.filter(p => fileMatchesPerson(f, p));
+    const pending = matches.filter(p => !p.downloaded);
+    if (matches.length && !pending.length){
+      ignored++;
+      const id = matches[0].code || matches[0].name || stem(f.name);
+      if (id && !ignoredIds.includes(id)) ignoredIds.push(id);
+      continue;
+    }
+    try {
+      pool.set(stem(f.name), { src: await decodePhoto(f), label: f.name });
+    } catch (e){ bad++; }
+  }
+  matchAll();
+  newlyMatched = Math.max(0, people.filter(p => p.photo && !p.downloaded).length - beforePending);
+  $('photoCard').classList.add('done');
+  if (ignored){
+    toast('Already downloaded — ignored' + (ignoredIds.length ? ' for ' + ignoredIds.slice(0, 3).join(', ') : '') +
+      (ignoredIds.length > 3 ? '…' : '') + ' (' + ignored + ' file' + (ignored > 1 ? 's' : '') + ')');
+  } else if (bad) toast(bad + ' file(s) could not be read and were skipped.');
+  else if (newlyMatched) toast('Auto-matched ' + newlyMatched + ' employee(s) from uploaded file(s).');
+  else if (files.length) toast('No Employee ID / Document Name match yet — check PDF names include the Employee ID.');
+  refresh();
+}
+
+function updatePhotoStepMeta(){
+  if (mode === 'solo') return;
+  if (!pool.size && !people.some(p => p.downloaded)){
+    $('photoMeta').textContent = 'JPG · PNG · WEBP · PDF · auto-match on Employee ID';
+    return;
+  }
+  const pending = people.filter(p => p.photo && !p.downloaded).length;
+  const downloaded = people.filter(p => p.downloaded).length;
+  let t = pool.size + ' photo(s) loaded · ' + pending + ' pending';
+  if (downloaded) t += ' · ' + downloaded + ' downloaded';
+  const cur = people[sel];
+  if (cur && cur.downloaded) t += ' · selected: Downloaded (ignored if re-uploaded)';
+  else if (cur && cur.photo) t += ' · selected: Pending download';
+  $('photoMeta').textContent = t;
+}
+
+function findPhotoFor(person){
+  if (person.assignedKey){
+    const byAssign = pool.get(person.assignedKey);
+    if (byAssign) return byAssign;
+  }
+  if (person.imageKey){
+    const byDoc = pool.get(person.imageKey);
+    if (byDoc) return byDoc;
+    const want = normId(person.imageKey);
+    for (const [key, val] of pool){
+      if (normId(key) === want || normId(stem(val.label)) === want) return val;
+    }
+  }
+  if (person.code){
+    for (const [key, val] of pool){
+      if (fileHasId(key, val.label, person.code)) return val;
+    }
+  }
+  if (person.imageKey){
+    const tokens = String(person.imageKey).match(/[a-z]{2,}\d{4,}|\d{6,}/gi) || [];
+    for (const t of tokens){
+      for (const [key, val] of pool){
+        if (fileHasId(key, val.label, t)) return val;
+      }
+    }
+  }
+  return null;
+}
+function matchAll(){
+  if (mode === 'solo') return;
+  people.forEach(p => {
+    if (p.downloaded) return;
+    const hit = findPhotoFor(p);
+    if (hit){ if (!p.photo || p.photo.src !== hit.src) p.photo = makePhoto(hit.src); }
+    else p.photo = null;
+  });
+}
+
+$('filterSeg').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  filter = b.dataset.f;
+  [...$('filterSeg').children].forEach(x => x.classList.toggle('on', x === b));
+  renderList();
+};
+$('empSearch').oninput = () => {
+  searchQ = $('empSearch').value.trim().toLowerCase();
+  renderList();
+};
+$('addRowBtn').onclick = () => {
+  people.push(Object.assign(blankPerson(), { name:'New person' }));
+  sel = people.length - 1; refresh(); $('nameInput').focus();
+};
+$('clearBtn').onclick = () => {
+  if (!batchPeople.length) return;
+  batchPeople = []; people = batchPeople; sel = -1;
+  $('sheetCard').classList.remove('done');
+  $('sheetMeta').textContent = 'Employee Name + Employee ID / Document Name · Department, Location optional';
+  refresh();
+};
+
+function emptyBox(html){ const d = document.createElement('div'); d.className = 'empty'; d.innerHTML = html; return d; }
+
+function rowStatus(p){
+  if (p.downloaded) return { cls:'dl', label:'Downloaded' };
+  if (p.photo) return { cls:'ok', label:'Matched' };
+  return { cls:'miss', label:'Missing' };
+}
+
+function renderList(){
+  const box = $('rows'); box.textContent = '';
+  const pendingN = people.filter(p => p.photo && !p.downloaded).length;
+  const dlN = people.filter(p => p.downloaded).length;
+  $('countLabel').textContent = people.length
+    ? pendingN + ' pending · ' + dlN + ' downloaded · ' + people.length + ' total'
+    : '';
+  if (!people.length){
+    box.appendChild(emptyBox('Upload the employee sheet to build the list.<br>Photos auto-match when the file name equals Document Name or contains the Employee ID.'));
+    return;
+  }
+  const rank = p => p.downloaded ? 0 : (p.photo ? 1 : 2);
+  const shown = people.map((p, i) => [p, i]).filter(([p]) => {
+    if (filter === 'ready' && !(p.photo && !p.downloaded)) return false;
+    if (filter === 'miss' && (p.photo || p.downloaded)) return false;
+    if (filter === 'done' && !p.downloaded) return false;
+    if (searchQ){
+      const hay = [p.name, p.code, p.desg, p.loc, p.imageKey].join(' ').toLowerCase();
+      if (!hay.includes(searchQ)) return false;
+    }
+    return true;
+  }).sort((a, b) => {
+    const d = rank(a[0]) - rank(b[0]);
+    return d !== 0 ? d : a[1] - b[1];
+  });
+  if (!shown.length){
+    box.appendChild(emptyBox(searchQ ? 'No employees match this search.' : 'Nothing in this view.'));
+    return;
+  }
+
+  shown.forEach(([p, i]) => {
+    const st = rowStatus(p);
+    const r = document.createElement('div');
+    r.className = 'row' + (i === sel ? ' sel' : '');
+    r.tabIndex = 0;
+    const badge = document.createElement('span');
+    badge.className = 'badge ' + st.cls;
+    badge.textContent = st.label;
+    const main = document.createElement('span'); main.className = 'row-main';
+    const nm = document.createElement('div'); nm.className = 'row-name';
+    nm.textContent = p.name || '(no name)';
+    if (p.code) nm.textContent += ' · ' + p.code;
+    const sb = document.createElement('div'); sb.className = 'row-sub';
+    const fileLabel = findPhotoFor(p)?.label || 'Photo attached';
+    sb.textContent = p.downloaded
+      ? ('Downloaded' + (p.photo ? ' · ' + fileLabel : ''))
+      : p.photo
+        ? fileLabel
+        : (p.code || p.imageKey
+          ? 'Waiting for ID/file “' + (p.code || p.imageKey) + '”'
+          : 'No Employee ID or Document Name');
+    main.append(nm, sb); r.append(badge, main);
+    const pick = () => { sel = i; refresh(); };
+    r.onclick = pick;
+    r.onkeydown = ev => { if (ev.key === 'Enter' || ev.key === ' '){ ev.preventDefault(); pick(); } };
+    box.appendChild(r);
+  });
+}
+
+// ---------- Drawing ----------
+const fontOf = (spec, size) => spec.weight + ' ' + size.toFixed(1) + 'px ' + (spec.font || FIG);
+
+// Largest size, at most spec.size, at which widthAt(size) fits maxW.
+function fitSize(ctx, spec, widthAt){
+  let size = spec.size;
+  for (;;){
+    ctx.font = fontOf(spec, size);
+    if (widthAt(size) <= spec.maxW || size <= 13) return size;
+    size -= 0.5;
+  }
+}
+
+function drawName(ctx, p, text){
+  const s = p.name;
+  const t = s.upper ? text.toLocaleUpperCase('en-IN') : text;
+  const size = fitSize(ctx, s, () => ctx.measureText(t).width);
+  ctx.font = fontOf(s, size);
+  ctx.fillStyle = s.fill;
+  ctx.textAlign = 'center';
+  ctx.fillText(t, p.cx, s.baseline);
+}
+
+// Line two is "Designation", or on plates with a location
+// "Designation | Location" with the printed pink divider bar between them.
+// The group is measured as one unit, shrunk as one unit and centred on cx.
+function drawLine2(ctx, p, desg, loc){
+  const s = p.line2;
+  const parts = [desg, loc].filter(Boolean);
+  if (!parts.length) return;
+  const bar = s.loc && s.loc.bar && parts.length === 2 ? s.loc.bar : null;
+  const extra = k => bar ? (bar.gap * 2 + bar.w) * k : 0;
+  const widthAt = size => parts.reduce((t, x) => t + ctx.measureText(x).width, 0) + extra(size / s.size);
+  const size = fitSize(ctx, s, widthAt);
+  const k = size / s.size;
+  ctx.font = fontOf(s, size);
+  ctx.textAlign = 'left';
+  ctx.fillStyle = s.fill;
+  let x = p.cx - widthAt(size) / 2;
+  ctx.fillText(parts[0], x, s.baseline);
+  x += ctx.measureText(parts[0]).width;
+  if (parts.length === 2){
+    if (bar){
+      x += bar.gap * k;
+      ctx.fillStyle = bar.fill;
+      ctx.fillRect(x, s.baseline + bar.top * k, Math.max(1.5, bar.w * k), bar.h * k);
+      x += bar.w * k + bar.gap * k;
+      ctx.fillStyle = s.fill;
+    } else {
+      x += ctx.measureText(' ').width;
+    }
+    ctx.fillText(parts[1], x, s.baseline);
+  }
+}
+
+function drawCreative(ctx, W, person){
+  const p = P();
+  const art = tplRaw || tpl;
+  const artW = art.width, artH = art.height;
+  const native = document.createElement('canvas');
+  native.width = artW;
+  native.height = artH;
+  const nctx = native.getContext('2d');
+  nctx.imageSmoothingEnabled = true;
+  if (nctx.imageSmoothingQuality) nctx.imageSmoothingQuality = 'high';
+
+  const hasPhoto = !!(person && person.photo);
+  if (hasPhoto){
+    const hb = holeBox(p.hole);
+    const s = person.photo.src;
+    const box = person.photo.box || { x: 0, y: 0, w: s.width, h: s.height };
+    const cover = Math.max(hb.w / box.w, hb.h / box.h) * person.photo.zoom;
+    nctx.save();
+    // Bleed past the punched window. Both edges are antialiased, so matching
+    // them exactly would leave a pale hairline; the artwork drawn on top hides
+    // the overrun.
+    holePath(nctx, p.hole, CLIP_BLEED);
+    nctx.clip();
+    nctx.fillStyle = '#fff';
+    nctx.fill();
+    nctx.drawImage(
+      s, box.x, box.y, box.w, box.h,
+      hb.x + hb.w / 2 - box.w * cover / 2 + person.photo.dx,
+      hb.y + hb.h / 2 - box.h * cover / 2 + person.photo.dy,
+      box.w * cover, box.h * cover
+    );
+    nctx.restore();
+  }
+
+  nctx.drawImage(hasPhoto ? tpl : (tplRaw || tpl), 0, 0);
+
+  const name = person ? person.name.trim() : '';
+  const desg = person ? person.desg.trim() : '';
+  const loc = p.line2.loc && person ? String(person.loc || '').trim() : '';
+  const lines = [!!name, !!(desg || loc)];
+  if (tplClean){
+    lines.forEach((on, i) => {
+      if (!on) return;
+      const [x0, y0, x1, y1] = p.patch[i];
+      nctx.drawImage(tplClean, x0, y0, x1 - x0, y1 - y0, x0, y0, x1 - x0, y1 - y0);
+    });
+  }
+  nctx.textBaseline = 'alphabetic';
+  if (name) drawName(nctx, p, name);
+  if (desg || loc) drawLine2(nctx, p, desg, loc);
+
+  ctx.imageSmoothingEnabled = true;
+  if (ctx.imageSmoothingQuality) ctx.imageSmoothingQuality = 'high';
+  const H = artH * (W / artW);
+  ctx.drawImage(native, 0, 0, W, H);
+}
+
+const stage = $('stage'), sctx = stage.getContext('2d');
+function renderPreview(){
+  if (!tplRaw && !tpl) return;
+  const art = tplRaw || tpl;
+  // Back the canvas with device pixels so the preview stays sharp on
+  // high-density screens.
+  const cssW = stage.getBoundingClientRect().width || 420;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const w = Math.max(240, Math.min(art.width, Math.round(cssW * dpr)));
+  const h = Math.round(w * art.height / art.width);
+  if (stage.width !== w) stage.width = w;
+  if (stage.height !== h) stage.height = h;
+  sctx.clearRect(0, 0, w, h);
+  drawCreative(sctx, w, people[sel]);
+}
+
+let drag = null;
+stage.addEventListener('pointerdown', e => {
+  const p = people[sel]; if (!p || !p.photo) return;
+  drag = { x:e.clientX, y:e.clientY, dx:p.photo.dx, dy:p.photo.dy };
+  stage.setPointerCapture(e.pointerId); stage.classList.add('dragging');
+});
+stage.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const p = people[sel];
+  const k = (tplRaw ? tplRaw.width : 1) / stage.getBoundingClientRect().width;
+  p.photo.dx = drag.dx + (e.clientX - drag.x) * k;
+  p.photo.dy = drag.dy + (e.clientY - drag.y) * k;
+  renderPreview();
+});
+['pointerup','pointercancel'].forEach(ev => stage.addEventListener(ev, () => { drag = null; stage.classList.remove('dragging'); }));
+stage.addEventListener('wheel', e => {
+  const p = people[sel]; if (!p || !p.photo) return;
+  e.preventDefault();
+  p.photo.zoom = Math.min(3, Math.max(1, p.photo.zoom - e.deltaY * 0.0015));
+  $('zoomCtl').value = Math.round(p.photo.zoom * 100);
+  $('zoomVal').textContent = $('zoomCtl').value + '%';
+  renderPreview();
+}, { passive:false });
+$('zoomCtl').oninput = () => {
+  const p = people[sel]; if (!p || !p.photo) return;
+  p.photo.zoom = $('zoomCtl').value / 100;
+  $('zoomVal').textContent = $('zoomCtl').value + '%';
+  renderPreview();
+};
+$('resetBtn').onclick = () => {
+  const p = people[sel]; if (!p || !p.photo) return;
+  Object.assign(p.photo, { zoom:1, dx:0, dy:0 }); refresh();
+};
+$('nameInput').oninput = () => { if (people[sel]){ people[sel].name = $('nameInput').value; renderPreview(); renderList(); updateHint(); updateButtons(); } };
+$('desgInput').oninput = () => { if (people[sel]){ people[sel].desg = $('desgInput').value; renderPreview(); updateHint(); updateButtons(); } };
+$('locInput').oninput  = () => { if (people[sel]){ people[sel].loc  = $('locInput').value;  renderPreview(); updateHint(); updateButtons(); } };
+
+function renderFull(person){
+  const art = tplRaw || tpl;
+  const c = document.createElement('canvas');
+  c.width = art.width; c.height = art.height;
+  drawCreative(c.getContext('2d'), art.width, person);
+  return c;
+}
+const fileNameFor = p => 'Navratri_' + plate.id + '_' + (p.name.trim() || 'Untitled').replace(/[^\w\- ]+/g, '').replace(/\s+/g, '_') + '.png';
+
+function saveBlob(blob, name){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name; a.rel = 'noopener';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 20000);
+}
+function showSavePanel(dataUrl, name){
+  $('ovlTitle').textContent = name;
+  $('ovlImg').src = dataUrl;
+  $('ovl').classList.add('show');
+  $('ovlClose').focus();
+  $('ovlOpen').onclick = () => {
+    const w = window.open();
+    if (w){ w.document.write('<title>' + name + '</title><img src="' + dataUrl + '" style="max-width:100%">'); w.document.close(); }
+    else toast('Pop-up blocked — use right-click → Save image as instead.');
+  };
+}
+$('ovlClose').onclick = () => $('ovl').classList.remove('show');
+$('ovl').onclick = e => { if (e.target === $('ovl')) $('ovl').classList.remove('show'); };
+document.addEventListener('keydown', e => { if (e.key === 'Escape') $('ovl').classList.remove('show'); });
+
+function markDownloaded(person){
+  if (!person) return;
+  person.downloaded = true;
+  updatePhotoStepMeta();
+  if (mode === 'batch') renderList();
+}
+
+$('dlBtn').onclick = async () => {
+  const p = people[sel]; if (!fieldsReady(p)) return;
+  await fontsReady();
+  const canvas = renderFull(p), name = fileNameFor(p);
+  if (EMBEDDED){
+    showSavePanel(canvas.toDataURL('image/png'), name);
+    markDownloaded(p);
+    toast('Saved · ' + (p.name || 'creative'));
+    return;
+  }
+  canvas.toBlob(b => {
+    saveBlob(b, name);
+    markDownloaded(p);
+    toast('Downloaded · ' + (p.name || name));
+  });
+};
+
+$('zipBtn').onclick = async () => {
+  if (!tplRaw) return;
+  if (!HAS_ZIP()){ toast('The ZIP builder did not load — check your internet connection and refresh.'); return; }
+  const ready = people.filter(p => fieldsReady(p) && !p.downloaded);
+  if (!ready.length){
+    toast(people.some(p => p.downloaded)
+      ? 'Nothing new to export — pending downloads are empty (already downloaded are ignored).'
+      : 'No one is ready yet — match photos and names first.');
+    return;
+  }
+  if (EMBEDDED){ toast('ZIP saving is blocked in preview mode — open this file in Chrome to export the batch.'); return; }
+  await fontsReady();
+  const btn = $('zipBtn'); btn.disabled = true;
+  try {
+    const zip = new JSZip();
+    for (let i = 0; i < ready.length; i++){
+      btn.textContent = 'Preparing ' + (i + 1) + '/' + ready.length + '…';
+      zip.file(fileNameFor(ready[i]), await new Promise(r => renderFull(ready[i]).toBlob(r)));
+      await new Promise(r => setTimeout(r));
+    }
+    const missing = people.filter(p => !p.photo && !p.downloaded);
+    if (missing.length){
+      zip.file('Pending_List.csv', 'EMP Code,Name,Expected image\n' + missing.map(p =>
+        [p.code, p.name, p.imageKey].map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n'));
+    }
+    saveBlob(await zip.generateAsync({ type:'blob' }), 'Navratri_Creatives.zip');
+    ready.forEach(p => { p.downloaded = true; });
+    updatePhotoStepMeta();
+    toast(ready.length + ' unique creative(s) exported' + (missing.length ? ' · ' + missing.length + ' still missing' : ''));
+  } catch (e){ toast('Export failed — try a smaller batch.'); }
+  btn.textContent = 'Download all (ZIP)'; updateButtons();
+  if (mode === 'batch') renderList();
+};
+
+function fieldsReady(p){
+  if (!(tplRaw && p && p.photo)) return false;
+  if (!String(p.name || '').trim() || !String(p.desg || '').trim()) return false;
+  // Only the Diya & Dandiya design prints a location line.
+  return !needsLoc() || !!String(p.loc || '').trim();
+}
+function updateButtons(){
+  const p = people[sel];
+  $('dlBtn').disabled = !fieldsReady(p);
+  $('zipBtn').disabled = !(tplRaw && mode === 'batch' && people.some(x => fieldsReady(x)));
+}
+function refresh(){
+  matchAll();
+  if (mode === 'batch') renderList();
+  const p = people[sel];
+  $('nameInput').value = p ? p.name : '';
+  $('desgInput').value = p ? p.desg : '';
+  $('locInput').value  = p ? (p.loc || '') : '';
+  [$('nameInput'), $('desgInput'), $('locInput')].forEach(i => i.disabled = !p);
+  $('locFld').classList.toggle('hide', !P().line2.loc);
+  const live = !!(p && p.photo);
+  $('zoomCtl').disabled = $('resetBtn').disabled = !live;
+  if (live){ $('zoomCtl').value = Math.round(p.photo.zoom * 100); $('zoomVal').textContent = $('zoomCtl').value + '%'; }
+  updateHint();
+  updatePhotoStepMeta();
+  updateButtons();
+  renderPreview();
+}
+
+function updateHint(){
+  const p = people[sel];
+  const live = !!(p && p.photo);
+  $('statusHint').textContent =
+    mode === 'solo' && !live ? 'Upload your photo in step 1 to place it in the frame.'
+    : p && !live ? 'No photo matched yet — upload a PDF/photo whose file name contains this Employee ID.'
+    : p && !String(p.name || '').trim() ? 'Add a name to enable the download.'
+    : p && !String(p.desg || '').trim() ? 'Add a designation to enable the download.'
+    : p && needsLoc() && !String(p.loc || '').trim() ? 'Add a location to enable the download.'
+    : p && live ? 'Ready — tap Download PNG anytime.'
+    : '';
+}
+
+function placeDownloadActions(){
+  const card = $('dlCard');
+  const mobile = $('dlMobileSlot');
+  const photo = $('photoCard');
+  if (!card || !mobile || !photo) return;
+  if (window.matchMedia('(max-width:640px)').matches){ if (card.parentNode !== mobile) mobile.appendChild(card); }
+  else if (photo.nextElementSibling !== card) photo.after(card);
+}
+let resizeT = 0;
+window.addEventListener('resize', () => {
+  placeDownloadActions();
+  clearTimeout(resizeT); resizeT = setTimeout(renderPreview, 80);
+});
+
+(async function init(){
+  $('verLabel').textContent = 'Creative Studio ' + VERSION;
+  if (EMBEDDED) $('banner').classList.remove('hide');
+  buildDesignSelect();
+  plate = PLATES.find(p => p.id === store.get('plate', PLATES[0].id)) || PLATES[0];
+  syncDesign();
+  try { await applyLayout(); }
+  catch (e){ toast('The built-in template failed to load — refresh the page and try again.'); }
+  if (!EXCEL_ENABLE){
+    $('modeCard').classList.add('hide');
+    $('sheetCard').classList.add('hide');
+    $('zipBtn').classList.add('hide');
+    $('listPanel').classList.add('hide');
+    if ($('photoStepNum')) $('photoStepNum').textContent = '1';
+    setMode('solo');
+  } else {
+    if ($('photoStepNum')) $('photoStepNum').textContent = '3';
+    setMode(store.get('mode', 'batch'));
+  }
+  placeDownloadActions();
+  fontsReady().then(renderPreview);
+  // Warm the other design so switching is instant.
+  PLATES.forEach(p => { loadCached(p.src).catch(() => {}); loadCached(p.clean).catch(() => {}); });
+})();
+</script>
+</body>
+</html>

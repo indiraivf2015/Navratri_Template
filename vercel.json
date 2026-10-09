@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/Indira_Creative_Studio.html"
+    }
+  ]
+}
