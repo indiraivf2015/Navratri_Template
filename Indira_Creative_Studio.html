@@ -282,7 +282,7 @@
       <strong>Happy <em>Navratri</em></strong>
       <span>Creative Studio · Indira IVF</span>
     </div>
-    <div class="hd-date">9 Nights · 9 Colours</div>
+    <div class="hd-date">NAVRATRI</div>
   </div>
   <div class="hd-bar"></div>
 </header>
@@ -1126,7 +1126,12 @@ function renderFull(person){
   drawCreative(c.getContext('2d'), art.width, person);
   return c;
 }
-const fileNameFor = p => 'Navratri_' + plate.id + '_' + (p.name.trim() || 'Untitled').replace(/[^\w\- ]+/g, '').replace(/\s+/g, '_') + '.png';
+// "<typed name>_navratri_template.png"; with no name, the design's role
+// (doctor / employee) stands in for it.
+const fileNameFor = p => {
+  const who = p.name.replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '_');
+  return (who || plate.label.replace(/_template$/, '')) + '_navratri_template.png';
+};
 
 function saveBlob(blob, name){
   const url = URL.createObjectURL(blob);

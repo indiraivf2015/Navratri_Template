@@ -10,8 +10,9 @@ Inputs (tools/src):
     navratri-durga-source.png  template 2, 1024 x 1536, gold-bordered photo square
 
 Outputs (templates/):
-    navratri-<id>.png        the artwork, untouched (shown before text is typed)
-    navratri-<id>-clean.png  the artwork with the printed placeholder text removed
+    navratri-<id>.png        the artwork with the stats strip at the foot painted
+                             out (shown before text is typed); same size
+    navratri-<id>-clean.png  the same, with the printed placeholder text removed too
     header-durga.png         Durga eyes / bindi / nath motif for the round header mark
     favicon.png              64 px tab icon
 
@@ -40,6 +41,12 @@ PLATES = {
         "text_boxes": [(440, 962, 684, 1010), (388, 1014, 738, 1058)],
         # text-vs-paper colour distance that counts as ink, and mask growth
         "ink": 9, "spread": 4, "grain": 1.0,
+        # stats card at the foot (x 21-1100, y 1171-1368) plus its pink rim,
+        # its shadow and the blurred rows under it, down to the bottom edge
+        "strip_box": (0, 1158, 1122, 1402),
+        # clean marble between the petals and the dandiya; its veins are laid
+        # over the fill so the floor carries on instead of going soft
+        "strip_texture": (190, 1088, 710, 1160),
         "window_search": (330, 500, 792, 980),
         "shape": "ellipse",
         # pink ring starts ~8 px outside the grey disc
@@ -52,6 +59,11 @@ PLATES = {
         "text_boxes": [(404, 1274, 620, 1311), (428, 1311, 600, 1351)],
         # this artwork gives its lettering a soft light halo; catch it too
         "ink": 7, "spread": 4, "grain": 0.5,
+        # full-width stats band (y 1366-1503) and the shadow it casts above;
+        # starts below the designation line (ends at row 1351)
+        "strip_box": (0, 1356, 1024, 1510),
+        # soft bokeh: the smooth fill alone matches it
+        "strip_texture": None,
         "window_search": (398, 1026, 626, 1236),
         "shape": "rrect",
         # gold border sits only ~2 px outside the grey panel
@@ -160,6 +172,83 @@ def build_clean(pid, img):
     clean = inpaint(img, mask)
     clean = add_grain(clean, img, mask, seed=7, amount=cfg["grain"])
     return clean, mask
+
+
+# --------------------------------------------------------------------------
+# Stats strip removal
+# --------------------------------------------------------------------------
+def relax(sub, m, iters):
+    """Jacobi steps of the harmonic fill. The image border reflects, so a box
+    that touches the edge blends from the sides it shares with the artwork."""
+    for _ in range(iters):
+        p = np.pad(sub, ((1, 1), (1, 1), (0, 0)), mode="edge")
+        nb = (p[:-2, 1:-1] + p[2:, 1:-1] + p[1:-1, :-2] + p[1:-1, 2:]) / 4
+        sub[m] = nb[m]
+    return sub
+
+
+def fill_box(img, box, levels=4, iters=400):
+    """Paint the box out with a harmonic fill solved coarse to fine, so even a
+    tall band settles into a smooth blend of the background around it."""
+    x0, y0, x1, y1 = box
+    mask = np.zeros(img.shape[:2], bool)
+    mask[y0:y1, x0:x1] = True
+    out = img.copy()
+    guess = None
+    for lv in range(levels - 1, -1, -1):
+        k = 2 ** lv
+        h, w = -(-img.shape[0] // k), -(-img.shape[1] // k)
+        small = np.asarray(Image.fromarray(np.clip(img, 0, 255).astype(np.uint8)).resize((w, h), Image.BOX)).astype(np.float64)
+        m = np.asarray(Image.fromarray((mask * 255).astype(np.uint8)).resize((w, h), Image.BOX)) > 0
+        if guess is None:
+            small[m] = small[~m & dilate(m, 2)].mean(0)
+        else:
+            up = np.dstack([np.asarray(Image.fromarray(guess[..., c].astype(np.float32), "F").resize((w, h), Image.BILINEAR))
+                            for c in range(3)])
+            small[m] = up[m]
+        guess = relax(small, m, iters)
+    out[mask] = guess[mask]
+    return out, mask
+
+
+def mirror_index(c, n):
+    c = np.mod(c, 2 * n)
+    return np.where(c < n, c, 2 * n - 1 - c)
+
+
+def floor_texture(img, tex_box, box):
+    """Marble detail for the box: the patch's veins with its lighting removed,
+    mirror-tiled and laid in perspective, so they grow towards the viewer
+    (rows faster than columns) like the floor above."""
+    tx0, ty0, tx1, ty1 = tex_box
+    patch = img[ty0:ty1, tx0:tx1]
+    detail = patch - blur(patch, 18)
+    ph, pw = detail.shape[:2]
+    x0, y0, x1, y1 = box
+    ys, xs = np.mgrid[y0:y1, x0:x1].astype(np.float64)
+    n = y1 - y0
+    su = 1.1 + 0.7 * (ys - y0) / n
+    # v integrates 1 / (row scale), so rows stay continuous as the scale grows
+    kv = 2.0 / n
+    v = np.log((1.3 + kv * (ys - y0)) / 1.3) / kv + ph * 0.5
+    u = (xs - img.shape[1] / 2) / su + pw * 0.37
+    u0, v0 = np.floor(u).astype(int), np.floor(v).astype(int)
+    fu, fv = (u - u0)[..., None], (v - v0)[..., None]
+    at = lambda dv, du: detail[mirror_index(v0 + dv, ph), mirror_index(u0 + du, pw)]
+    return ((at(0, 0) * (1 - fu) + at(0, 1) * fu) * (1 - fv)
+            + (at(1, 0) * (1 - fu) + at(1, 1) * fu) * fv)
+
+
+def remove_strip(pid, img):
+    cfg = PLATES[pid]
+    filled, mask = fill_box(img, cfg["strip_box"])
+    if cfg["strip_texture"]:
+        x0, y0, x1, y1 = cfg["strip_box"]
+        # settle the colour fill, then lay the marble veins over it
+        soft = blur(filled, 6)
+        filled[mask] = soft[mask]
+        filled[y0:y1, x0:x1] += floor_texture(img, cfg["strip_texture"], cfg["strip_box"])
+    return add_grain(filled, img, mask, seed=11, amount=cfg["grain"])
 
 
 # --------------------------------------------------------------------------
@@ -324,7 +413,7 @@ def main():
     OUT.mkdir(exist_ok=True)
     report_ok = True
     for pid, cfg in PLATES.items():
-        img = load(cfg["src"])
+        img = remove_strip(pid, load(cfg["src"]))
         h, w = img.shape[:2]
         save_rgb(img, OUT / f"navratri-{pid}.png", optimize=True)
         clean, mask = build_clean(pid, img)

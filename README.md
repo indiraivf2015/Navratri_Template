@@ -49,14 +49,15 @@ Any static host works. `vercel.json` already rewrites `/` to the studio page. Ha
 python tools/prepare_navratri.py
 ```
 
-The script needs Pillow and NumPy. It does three things.
+The script needs Pillow and NumPy. It does four things.
 
-1. **Builds the clean artwork.** It finds the placeholder text, including its soft halo, and fills it in from the surrounding background. It then adds back matching grain so the patch does not look smooth.
-2. **Fits each photo window** to the grey placeholder printed inside the frame. It then checks two things:
+1. **Removes the stats strip** at the foot of each design and blends the background over it. The image size stays the same.
+2. **Builds the clean artwork.** It finds the placeholder text, including its soft halo, and fills it in from the surrounding background. It then adds back matching grain so the patch does not look smooth.
+3. **Fits each photo window** to the grey placeholder printed inside the frame. It then checks two things:
    - no placeholder grey is left outside the window, so there is no grey halo;
    - no ring or border pixel falls inside it, so the frame stays whole.
    It prints `PASS` or `FAIL` per design, plus the window values that go into `PLATES`.
-3. **Cuts the header mark:** the Durga motif shown in the round header badge, plus the tab icon.
+4. **Cuts the header mark:** the Durga motif shown in the round header badge, plus the tab icon.
 
 ## Geometry (`PLATES` in the HTML)
 
